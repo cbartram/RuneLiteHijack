@@ -24,8 +24,6 @@
  */
 package ca.arnah.runelite.plugin.config;
 
-import javax.annotation.Nullable;
-import javax.swing.JMenuItem;
 import ca.arnah.runelite.plugin.ArnahPluginManager;
 import ca.arnah.runelite.plugin.ArnahPluginManifest;
 import lombok.Value;
@@ -34,8 +32,11 @@ import net.runelite.client.config.ConfigDescriptor;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.util.LinkBrowser;
 
+import javax.annotation.Nullable;
+import javax.swing.*;
+
 @Value
-class ArnahPluginConfigurationDescriptor{
+class ArnahPluginConfigurationDescriptor {
 	
 	private final String name;
 	private final String description;
@@ -62,7 +63,7 @@ class ArnahPluginConfigurationDescriptor{
 	 * @return A {@link JMenuItem} which opens the plugin's wiki page URL in the browser when clicked
 	 */
 	@Nullable
-	JMenuItem createSupportMenuItem(){
+	JMenuItem createSupportMenuItem() {
 		ArnahPluginManifest mf = getExternalPluginManifest();
 		if(mf != null){
 			if(mf.getSupport() == null){
@@ -80,7 +81,7 @@ class ArnahPluginConfigurationDescriptor{
 	}
 	
 	@Nullable
-	ArnahPluginManifest getExternalPluginManifest(){
+	ArnahPluginManifest getExternalPluginManifest() {
 		if(plugin == null){
 			return null;
 		}

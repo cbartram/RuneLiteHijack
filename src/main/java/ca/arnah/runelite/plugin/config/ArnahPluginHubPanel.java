@@ -24,44 +24,6 @@
  */
 package ca.arnah.runelite.plugin.config;
 
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.Dimension;
-import java.awt.event.ActionEvent;
-import java.awt.event.KeyEvent;
-import java.awt.image.BufferedImage;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.function.Function;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import javax.inject.Inject;
-import javax.swing.AbstractAction;
-import javax.swing.BorderFactory;
-import javax.swing.GroupLayout;
-import javax.swing.ImageIcon;
-import javax.swing.JButton;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.KeyStroke;
-import javax.swing.LayoutStyle;
-import javax.swing.ScrollPaneConstants;
-import javax.swing.SwingUtilities;
-import javax.swing.border.EmptyBorder;
-import javax.swing.border.LineBorder;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
 import ca.arnah.runelite.events.ArnahPluginsChanged;
 import ca.arnah.runelite.plugin.ArnahPluginClient;
 import ca.arnah.runelite.plugin.ArnahPluginManager;
@@ -77,8 +39,6 @@ import net.runelite.client.config.Config;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginManager;
-import net.runelite.client.plugins.config.PluginSearch;
-import net.runelite.client.plugins.config.SearchablePlugin;
 import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.ui.DynamicGridLayout;
 import net.runelite.client.ui.FontManager;
@@ -87,8 +47,27 @@ import net.runelite.client.ui.components.IconTextField;
 import net.runelite.client.util.ImageUtil;
 import net.runelite.client.util.SwingUtil;
 
+import javax.inject.Inject;
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import javax.swing.border.LineBorder;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.KeyEvent;
+import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.util.*;
+import java.util.List;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.function.Function;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 @Slf4j
-public class ArnahPluginHubPanel extends PluginPanel{
+public class ArnahPluginHubPanel extends PluginPanel {
 	
 	private static final ImageIcon MISSING_ICON;
 	private static final ImageIcon HELP_ICON;

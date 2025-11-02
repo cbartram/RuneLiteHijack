@@ -1,24 +1,26 @@
 package ca.arnah.runelite;
 
+import lombok.extern.slf4j.Slf4j;
 import net.runelite.client.RuneLite;
 
 /**
  * @author Arnah
  * @since Nov 07, 2020
  */
-public class ClientHijack{
+@Slf4j
+public class ClientHijack {
 	
-	public ClientHijack(){
-		System.out.println("Client hijacked");
-		new Thread(()->{
-			while(RuneLite.getInjector() == null){
-				try{
+	public ClientHijack() {
+		log.info("Searching for RuneLite injector");
+		new Thread(() -> {
+			while(RuneLite.getInjector() == null) {
+				try {
 					Thread.sleep(100);
-				}catch(Exception ex){
-					ex.printStackTrace();
+				} catch(Exception ex) {
+					log.error(ex.getMessage(), ex);
 				}
 			}
-			System.out.println("Injector found");
+			log.info("RuneLite Injector located, starting HijackedClient.class thread");
 			RuneLite.getInjector().getInstance(HijackedClient.class).start();
 		}).start();
 	}

@@ -1,11 +1,5 @@
 package ca.arnah.runelite.plugin;
 
-import java.io.IOException;
-import java.lang.reflect.Type;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-import javax.inject.Inject;
 import ca.arnah.runelite.RuneLiteHijackProperties;
 import com.google.common.hash.Hashing;
 import com.google.common.reflect.TypeToken;
@@ -19,19 +13,26 @@ import okhttp3.Request;
 import okhttp3.Response;
 import okio.BufferedSource;
 
+import javax.inject.Inject;
+import java.io.IOException;
+import java.lang.reflect.Type;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+
 @Slf4j
-public class ArnahPluginClient{
+public class ArnahPluginClient {
 	
 	private final OkHttpClient okHttpClient;
 	private final Type type = new TypeToken<List<ArnahPluginManifest>>(){}.getType();
 	private final Type tempType = new TypeToken<List<MemePluginManifest>>(){}.getType();
 	
 	@Inject
-	private ArnahPluginClient(OkHttpClient okHttpClient){
+	private ArnahPluginClient(OkHttpClient okHttpClient) {
 		this.okHttpClient = okHttpClient;
 	}
 	
-	public List<ArnahPluginManifest> downloadManifest() throws IOException{
+	public List<ArnahPluginManifest> downloadManifest() throws IOException {
 		List<ArnahPluginManifest> manifests = new ArrayList<>();
 		List<HttpUrl> pluginHubs = RuneLiteHijackProperties.getPluginHubBase();
 		for(HttpUrl url : pluginHubs){
@@ -47,7 +48,7 @@ public class ArnahPluginClient{
 				
 				List<ArnahPluginManifest> newManifests = RuneLiteAPI.GSON.fromJson(data, type);
 				
-				if(data.contains("releases")){
+				if(data.contains("releases")) {
 					List<MemePluginManifest> memeManifests = RuneLiteAPI.GSON.fromJson(data, tempType);
 					newManifests.stream().filter(m->m.getUrl() == null).forEach(m->{
 						MemePluginManifest.MemeRelease release = memeManifests.stream()
@@ -65,10 +66,10 @@ public class ArnahPluginClient{
 				newManifests.stream().filter(m->m.getUrl() == null).forEach(m->m.setUrl(url + "/" + m.getProvider() + "/" + m.getInternalName() + ".jar"));
 				
 				manifests.addAll(newManifests);
-			}catch(Exception ex){
+			}catch(Exception ex) {
 				if(ex instanceof IOException && pluginHubs.size() != 1){
 					log.error("", ex);
-				}else{
+				} else {
 					throw ex;
 				}
 			}
@@ -77,7 +78,7 @@ public class ArnahPluginClient{
 	}
 	
 	@Getter
-	private static class MemePluginManifest{
+	private static class MemePluginManifest {
 		
 		@SerializedName(value = "internalName", alternate = {"id"})
 		private String internalName;
@@ -85,7 +86,7 @@ public class ArnahPluginClient{
 		private List<MemeRelease> releases;
 		
 		@Getter
-		private static class MemeRelease{
+		private static class MemeRelease {
 			
 			private String url;
 			private String sha512sum;

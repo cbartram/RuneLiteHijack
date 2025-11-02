@@ -24,17 +24,6 @@
  */
 package ca.arnah.runelite.plugin.config;
 
-import java.awt.BorderLayout;
-import java.awt.Component;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.util.List;
-import javax.inject.Inject;
-import javax.inject.Provider;
-import javax.swing.JButton;
-import javax.swing.JPanel;
-import javax.swing.SwingUtilities;
-import javax.swing.border.EmptyBorder;
 import ca.arnah.runelite.events.ArnahPluginsChanged;
 import ca.arnah.runelite.plugin.ArnahPluginManager;
 import lombok.Getter;
@@ -50,6 +39,15 @@ import net.runelite.client.plugins.PluginManager;
 import net.runelite.client.plugins.config.ConfigPlugin;
 import net.runelite.client.ui.MultiplexingPluginPanel;
 import net.runelite.client.ui.PluginPanel;
+
+import javax.inject.Inject;
+import javax.inject.Provider;
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import java.awt.*;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.util.List;
 
 @Slf4j
 public class ArnahPluginListPanel{
@@ -171,77 +169,56 @@ public class ArnahPluginListPanel{
 		scrollPane.getVerticalScrollBar().setValue(scrollBarPosition);*/
 	}
 	
-	void openWithFilter(String filter){
+	void openWithFilter(String filter) {
 		// searchBar.setText(filter);
 		// onSearchBarChanged();
 		// muxer.pushState(this);
 	}
 	
-	private void openConfigurationPanel(String configGroup){
-		try{
+	private void openConfigurationPanel(String configGroup) {
+		try {
 			Method method = objPluginListPanel.getClass().getDeclaredMethod("openConfigurationPanel", String.class);
 			method.setAccessible(true);
 			method.invoke(objPluginListPanel, configGroup);
-		}catch(Exception ex){
+		} catch(Exception ex) {
 			ex.printStackTrace();
 		}
 	}
 	
-	void openConfigurationPanel(Plugin plugin){
-		try{
+	void openConfigurationPanel(Plugin plugin) {
+		try {
 			Method method = objPluginListPanel.getClass().getDeclaredMethod("openConfigurationPanel", Plugin.class);
 			method.setAccessible(true);
 			method.invoke(objPluginListPanel, plugin);
-		}catch(Exception ex){
+		} catch(Exception ex) {
 			ex.printStackTrace();
 		}
 	}
 	
-	void openConfigurationPanel(ArnahPluginConfigurationDescriptor plugin){
+	void openConfigurationPanel(ArnahPluginConfigurationDescriptor plugin) {
 		// ConfigPanel panel = configPanelProvider.get();
 		// panel.init(plugin);
 		// muxer.pushState(panel);
 	}
 	
-	void startPlugin(Plugin plugin){
+	void startPlugin(Plugin plugin) {
 		pluginManager.setPluginEnabled(plugin, true);
 		
-		try{
+		try {
 			pluginManager.startPlugin(plugin);
-		}catch(PluginInstantiationException ex){
+		} catch(PluginInstantiationException ex) {
 			log.warn("Error when starting plugin {}", plugin.getClass().getSimpleName(), ex);
 		}
 	}
 	
-	void stopPlugin(Plugin plugin){
+	void stopPlugin(Plugin plugin) {
 		pluginManager.setPluginEnabled(plugin, false);
 		
-		try{
+		try {
 			pluginManager.stopPlugin(plugin);
-		}catch(PluginInstantiationException ex){
+		} catch(PluginInstantiationException ex) {
 			log.warn("Error when stopping plugin {}", plugin.getClass().getSimpleName(), ex);
 		}
-	}
-	
-	private List<String> getPinnedPluginNames(){
-		/*final String config = configManager.getConfiguration(RUNELITE_GROUP_NAME, PINNED_PLUGINS_CONFIG_KEY);
-
-		if (config == null)
-		{
-			return Collections.emptyList();
-		}
-
-		return Text.fromCSV(config);*/
-		return List.of();
-	}
-	
-	void savePinnedPlugins(){
-/*		final String value = pluginList.stream()
-			.filter(ArnahPluginListItem::isPinned)
-			.map(p -> p.getPluginConfig().getName())
-			.collect(Collectors.joining(","));
-*/
-		// configManager.setConfiguration(RUNELITE_GROUP_NAME, PINNED_PLUGINS_CONFIG_KEY, value);
 	}
 	
 	@Subscribe

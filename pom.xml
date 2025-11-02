@@ -10,8 +10,8 @@
 
 	<properties>
 		<jdk.version>11</jdk.version>
-		<runelite.version>1.10.21</runelite.version>
-		<launcher.version>2.6.4-SNAPSHOT</launcher.version>
+		<runelite.version>1.12.1</runelite.version>
+		<launcher.version>2.7.5</launcher.version>
 		<lombok.version>1.18.22</lombok.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<maven.compiler.source>${jdk.version}</maven.compiler.source>

@@ -24,22 +24,6 @@
  */
 package ca.arnah.runelite.plugin;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.lang.reflect.InvocationTargetException;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.function.Function;
-import javax.inject.Inject;
-import javax.inject.Singleton;
-import javax.swing.SwingUtilities;
 import ca.arnah.runelite.RuneLiteHijackProperties;
 import ca.arnah.runelite.events.ArnahPluginsChanged;
 import com.google.common.collect.HashMultimap;
@@ -62,13 +46,25 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 
+import javax.inject.Inject;
+import javax.inject.Singleton;
+import javax.swing.*;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.lang.reflect.InvocationTargetException;
+import java.net.URL;
+import java.util.*;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.function.Function;
+
 /**
  * @author Arnah
  * @since Nov 08, 2020
  */
 @Singleton
 @Slf4j
-public class ArnahPluginManager{
+public class ArnahPluginManager {
 	
 	private static final String GROUP_NAME = "hijack";
 	private static final String PLUGIN_LIST_KEY = "plugins";
@@ -81,7 +77,7 @@ public class ArnahPluginManager{
 	private final OkHttpClient okHttpClient;
 	
 	@Inject
-	public ArnahPluginManager(ConfigManager configManager, ArnahPluginClient externalPluginClient, ScheduledExecutorService executor, PluginManager pluginManager, EventBus eventBus, OkHttpClient okHttpClient){
+	public ArnahPluginManager(ConfigManager configManager, ArnahPluginClient externalPluginClient, ScheduledExecutorService executor, PluginManager pluginManager, EventBus eventBus, OkHttpClient okHttpClient) {
 		this.configManager = configManager;
 		this.externalPluginClient = externalPluginClient;
 		this.executor = executor;
@@ -90,11 +86,11 @@ public class ArnahPluginManager{
 		this.okHttpClient = okHttpClient;
 	}
 	
-	public void loadExternalPlugins() throws PluginInstantiationException{
+	public void loadExternalPlugins() throws PluginInstantiationException {
 		refreshPlugins();
 	}
 	
-	private void refreshPlugins(){
+	private void refreshPlugins() {
 		Multimap<ArnahPluginManifest, Plugin> loadedExternalPlugins = HashMultimap.create();
 		for(Plugin p : pluginManager.getPlugins()){
 			ArnahPluginManifest m = getExternalPluginManifest(p.getClass());
@@ -109,7 +105,7 @@ public class ArnahPluginManager{
 		}
 		
 		boolean startup = SplashScreen.isOpen();
-		try{
+		try {
 			String pluginHubUrls = RuneLiteHijackProperties.getPluginHubProperty();
 			double splashStart = startup ? .60 : 0;
 			double splashLength = startup ? .10 : 1;
@@ -119,7 +115,7 @@ public class ArnahPluginManager{
 			SplashScreen.stage(splashStart, null, "Downloading RuneLiteHijack plugins");
 			Set<ArnahPluginManifest> externalPlugins = new HashSet<>();
 			List<ArnahPluginManifest> manifestList;
-			try{
+			try {
 				ArnahPluginManifest.PLUGINS_DIR.mkdirs();
 				
 				manifestList = externalPluginClient.downloadManifest();
@@ -169,7 +165,7 @@ public class ArnahPluginManager{
 						log.error("Unable to download RuneLiteHijack plugin \"{}\"", manifest.getDisplayName(), ex);
 					}
 				}
-			}catch(IOException ex){
+			} catch(IOException ex) {
 				log.error("Unable to download RuneLiteHijack plugins", ex);
 				return;
 			}
@@ -179,32 +175,32 @@ public class ArnahPluginManager{
 			// TODO(abex): make sure the plugins get fully removed from the scheduler/eventbus/other managers (iterate and check classloader)
 			Set<ArnahPluginManifest> add = new HashSet<>();
 			for(ArnahPluginManifest ex : externalPlugins){
-				if(loadedExternalPlugins.removeAll(ex).size() <= 0){
+				if(loadedExternalPlugins.removeAll(ex).size() <= 0) {
 					add.add(ex);
 				}
 			}
 			// list of loaded external plugins that aren't in the manifest
 			Collection<Plugin> remove = loadedExternalPlugins.values();
 			
-			for(Plugin p : remove){
+			for(Plugin p : remove) {
 				log.info("Stopping RuneLiteHijack plugin \"{}\"", p.getClass());
 				try{
-					SwingUtilities.invokeAndWait(()->{
+					SwingUtilities.invokeAndWait(()-> {
 						try{
 							pluginManager.stopPlugin(p);
 						}catch(Exception ex){
 							throw new RuntimeException(ex);
 						}
 					});
-				}catch(InterruptedException | InvocationTargetException ex){
+				}catch(InterruptedException | InvocationTargetException ex) {
 					log.warn("Unable to stop RuneLiteHijack plugin \"{}\"", p.getClass().getName(), ex);
 				}
 				pluginManager.remove(p);
 			}
 			
-			for(ArnahPluginManifest manifest : add){
+			for(ArnahPluginManifest manifest : add) {
 				// I think this can't happen, but just in case
-				if(!manifest.isValid()){
+				if(!manifest.isValid()) {
 					log.warn("Invalid plugin for validated manifest: {}", manifest);
 					continue;
 				}
@@ -212,11 +208,11 @@ public class ArnahPluginManager{
 				log.info("Loading RuneLiteHijack plugin \"{}\"", manifest.getDisplayName());
 				
 				List<Plugin> newPlugins = null;
-				try{
+				try {
 					ClassLoader cl = new ArnahPluginClassLoader(manifest, new URL[]{manifest.getJarFile().toURI().toURL()});
 					List<Class<?>> clazzes = new ArrayList<>();
 					URL url = cl.getResource("META-INF/extensions.idx");
-					if(url != null){
+					if(url != null) {
 						try(InputStream is = url.openStream()){
 							for(String line : new String(is.readAllBytes()).split("\n")){
 								if(line.startsWith("#")) continue;
@@ -224,7 +220,7 @@ public class ArnahPluginManager{
 							}
 						}
 					}
-					if(manifest.getPlugins() != null){
+					if(manifest.getPlugins() != null) {
 						for(String className : manifest.getPlugins()){
 							clazzes.add(cl.loadClass(className));
 						}
@@ -235,7 +231,7 @@ public class ArnahPluginManager{
 					pluginManager.loadDefaultPluginConfiguration(newPlugins);
 					SwingUtilities.invokeAndWait(()->{
 						try{
-							for(Plugin p : newPlugins2){
+							for(Plugin p : newPlugins2) {
 								if(pluginManager.startPlugin(p)){
 									log.info("Started plugin {}", p.getName());
 								}else{
@@ -246,9 +242,9 @@ public class ArnahPluginManager{
 							log.error("Failed to start plugins", ex);
 						}
 					});
-				}catch(ThreadDeath e){
+				} catch(ThreadDeath e) {
 					throw e;
-				}catch(Throwable e){
+                } catch(Throwable e) {
 					log.warn("Unable to start or load RuneLiteHijack plugin \"{}\"", manifest.getDisplayName(), e);
 					if(newPlugins != null){
 						for(Plugin p : newPlugins){
@@ -268,29 +264,29 @@ public class ArnahPluginManager{
 					}
 				}
 			}
-			if(!startup){
+			if(!startup) {
 				eventBus.post(new ArnahPluginsChanged(manifestList));
 				eventBus.post(new ExternalPluginsChanged());
 			}
 			// Allows plugins to adjust the plugin hub urls if they want
 			// We then need to check plugins again with the new urls
-			if(!pluginHubUrls.equals(RuneLiteHijackProperties.getPluginHubProperty())){
+			if(!pluginHubUrls.equals(RuneLiteHijackProperties.getPluginHubProperty())) {
 				log.info("Detected pluginhub urls have been changed, pulling again.");
 				update();
 			}
-		}finally{
-			if(!startup){
+		} finally {
+			if(!startup) {
 				SplashScreen.stop();
 			}
 		}
 	}
 	
-	public List<String> getInstalledExternalPlugins(){
+	public List<String> getInstalledExternalPlugins() {
 		String externalPluginsStr = configManager.getConfiguration(GROUP_NAME, PLUGIN_LIST_KEY);
 		return Text.fromCSV(externalPluginsStr == null ? "" : externalPluginsStr);
 	}
 	
-	public void install(String key){
+	public void install(String key) {
 		Set<String> plugins = new HashSet<>(getInstalledExternalPlugins());
 		if(plugins.add(key)){
 			configManager.setConfiguration(GROUP_NAME, PLUGIN_LIST_KEY, Text.toCSV(plugins));
@@ -298,7 +294,7 @@ public class ArnahPluginManager{
 		}
 	}
 	
-	public void remove(String key){
+	public void remove(String key) {
 		Set<String> plugins = new HashSet<>(getInstalledExternalPlugins());
 		if(plugins.remove(key)){
 			configManager.setConfiguration(GROUP_NAME, PLUGIN_LIST_KEY, Text.toCSV(plugins));
@@ -306,13 +302,13 @@ public class ArnahPluginManager{
 		}
 	}
 	
-	public void update(){
+	public void update() {
 		executor.submit(this::refreshPlugins);
 	}
 	
-	public static ArnahPluginManifest getExternalPluginManifest(Class<? extends Plugin> plugin){
+	public static ArnahPluginManifest getExternalPluginManifest(Class<? extends Plugin> plugin) {
 		ClassLoader cl = plugin.getClassLoader();
-		if(cl instanceof ArnahPluginClassLoader){
+		if(cl instanceof ArnahPluginClassLoader) {
 			ArnahPluginClassLoader ecl = (ArnahPluginClassLoader) cl;
 			return ecl.getManifest();
 		}

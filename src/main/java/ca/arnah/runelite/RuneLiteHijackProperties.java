@@ -1,9 +1,10 @@
 package ca.arnah.runelite;
 
+import okhttp3.HttpUrl;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
-import okhttp3.HttpUrl;
 
 /**
  * @author Arnah
@@ -13,8 +14,8 @@ public class RuneLiteHijackProperties{
 	
 	public static final String PLUGINHUB_BASE = "runelitehijack.pluginhub.url";
 	public static final String PLUGINHUB_BASE_URL = "https://raw.githubusercontent.com/Arnuh/RuneLiteHijack-PluginHub/master/";
-	
-	public static List<HttpUrl> getPluginHubBase(){
+
+    public static List<HttpUrl> getPluginHubBase(){
 		return Arrays.stream(getPluginHubs()).map(HttpUrl::parse).collect(Collectors.toList());
 	}
 	

@@ -1,11 +1,11 @@
 package ca.arnah.runelite.events;
 
-import java.util.List;
 import ca.arnah.runelite.plugin.ArnahPluginManifest;
 import lombok.Value;
 
+import java.util.List;
+
 @Value
-public class ArnahPluginsChanged{
-	
+public class ArnahPluginsChanged {
 	List<ArnahPluginManifest> loadedManifest;
 }
