@@ -1,6 +1,5 @@
 package ca.arnah.runelite;
 
-
 import lombok.extern.slf4j.Slf4j;
 
 import javax.swing.*;
@@ -8,77 +7,171 @@ import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 /**
- * @author Arnah
- * @since Nov 07, 2020
+ * Hijacks the RuneLite launcher to inject custom client code.
  */
 @Slf4j
 public class LauncherHijack {
-	
-	public LauncherHijack() {
-		new Thread(() -> {
-			// First we need to grab the ClassLoader the launcher uses to launch the client.
-			ClassLoader objClassLoader;
-			loop:
-			while(true) {
-				objClassLoader = (ClassLoader) UIManager.get("ClassLoader");
-				if(objClassLoader != null){
-					for(Package pack : objClassLoader.getDefinedPackages()){
-						if(pack.getName().equals("net.runelite.client.rs")){
-							break loop;
-						}
-					}
-				}
 
-				try {
-					Thread.sleep(100);
-				} catch(Exception ex) {
-					ex.printStackTrace();
-				}
-			}
+    private static final long CLASSLOADER_POLL_INTERVAL_MS = 100;
+    private static final long SHUTDOWN_TIMEOUT_SECONDS = 10;
+    private static final String RUNELITE_PACKAGE = "net.runelite.client.rs";
+    private static final String LAUNCHER_CLASS = "net.runelite.launcher.Launcher";
 
-			log.info("RuneLite Classloader located: {}", objClassLoader.getName());
-			try{
-				URLClassLoader classLoader = (URLClassLoader) objClassLoader;
-				
-				// Add our hijack client to the classloader
-				Method addUrl = URLClassLoader.class.getDeclaredMethod("addURL", URL.class);
-				addUrl.setAccessible(true);
-				
-				URI uri = LauncherHijack.class.getProtectionDomain().getCodeSource().getLocation().toURI();
-				if(uri.getPath().endsWith("classes/")){// Intellij
-					uri = uri.resolve("..");
-				}
-				if(!uri.getPath().endsWith(".jar")){
-					uri = uri.resolve("RuneLiteHijack.jar");
-				}
-				addUrl.invoke(classLoader, uri.toURL());
-				System.out.println(uri.getPath());
-				
-				// Execute our code inside the runelite client classloader
-				Class<?> clazz = classLoader.loadClass(ClientHijack.class.getName());
-				clazz.getConstructor().newInstance();
-			} catch(Exception ex) {
-				log.error(ex.getMessage(), ex);
-			}
-		}).start();
-	}
-	
-	public static void main(String[] args) {
-		// Force disable the "JVMLauncher", was just easiest way to do what I wanted at the time.
-		System.setProperty("runelite.launcher.nojvm", "true");
-		// Was renamed in https://github.com/runelite/launcher/commit/9086bb5539fce6ccdea148b03ff05efde21e675e
-		System.setProperty("runelite.launcher.reflect", "true");
-		new LauncherHijack();
-		// Launcher.main(args);
-		try{
-			Class<?> clazz = Class.forName("net.runelite.launcher.Launcher");
-			clazz.getMethod("main", String[].class).invoke(null, (Object) args);
-		}catch(Exception e) {
-		    log.error("failed to start RuneLite launcher: ", e);
+    private final ExecutorService executorService;
+
+    public LauncherHijack() {
+        this.executorService = Executors.newSingleThreadExecutor(r -> {
+            Thread thread = new Thread(r, "LauncherHijack-Worker");
+            thread.setDaemon(true);
+            return thread;
+        });
+    }
+
+    /**
+     * Starts the hijack process asynchronously.
+     */
+    public void start() {
+        executorService.submit(this::hijackLauncher);
+    }
+
+    /**
+     * Shuts down the executor service gracefully.
+     */
+    public void shutdown() {
+        executorService.shutdown();
+        try {
+            if (!executorService.awaitTermination(SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
+                executorService.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            executorService.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    private void hijackLauncher() {
+        try {
+            ClassLoader runeliteClassLoader = waitForRuneLiteClassLoader();
+            log.info("RuneLite ClassLoader located: {}", runeliteClassLoader.getName());
+
+            injectHijackClient(runeliteClassLoader);
+        } catch (InterruptedException e) {
+            log.warn("Hijack process interrupted", e);
+            Thread.currentThread().interrupt();
+        } catch (Exception e) {
+            log.error("Failed to hijack launcher", e);
+        }
+    }
+
+    /**
+     * Polls for the RuneLite ClassLoader until it's available.
+     */
+    private ClassLoader waitForRuneLiteClassLoader() throws InterruptedException {
+        while (!Thread.currentThread().isInterrupted()) {
+            ClassLoader classLoader = (ClassLoader) UIManager.get("ClassLoader");
+
+            if (classLoader != null && isRuneLiteClassLoader(classLoader)) {
+                return classLoader;
+            }
+
+            Thread.sleep(CLASSLOADER_POLL_INTERVAL_MS);
+        }
+        throw new InterruptedException("Interrupted while waiting for ClassLoader");
+    }
+
+    /**
+     * Checks if the given ClassLoader contains RuneLite packages.
+     */
+    private boolean isRuneLiteClassLoader(ClassLoader classLoader) {
+        for (Package pack : classLoader.getDefinedPackages()) {
+            if (pack.getName().equals(RUNELITE_PACKAGE)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Injects the hijack client into the RuneLite ClassLoader.
+     */
+    private void injectHijackClient(ClassLoader classLoader) throws Exception {
+        if (!(classLoader instanceof URLClassLoader)) {
+            throw new IllegalStateException("ClassLoader is not a URLClassLoader");
         }
 
-		log.info("Hijacked RuneLite Launcher started");
-	}
+        URLClassLoader urlClassLoader = (URLClassLoader) classLoader;
+        URL hijackJarUrl = resolveHijackJarUrl();
+
+        addUrlToClassLoader(urlClassLoader, hijackJarUrl);
+        log.info("Added hijack JAR to ClassLoader: {}", hijackJarUrl);
+
+        instantiateHijackClient(urlClassLoader);
+    }
+
+    /**
+     * Resolves the URL of the hijack JAR file.
+     */
+    private URL resolveHijackJarUrl() throws Exception {
+        URI uri = LauncherHijack.class.getProtectionDomain()
+                .getCodeSource()
+                .getLocation()
+                .toURI();
+
+        // Handle IntelliJ classes directory
+        if (uri.getPath().endsWith("classes/")) {
+            uri = uri.resolve("..");
+        }
+
+        // Handle non-JAR paths
+        if (!uri.getPath().endsWith(".jar")) {
+            uri = uri.resolve("RuneLiteHijack.jar");
+        }
+
+        return uri.toURL();
+    }
+
+    /**
+     * Adds a URL to the URLClassLoader using reflection.
+     */
+    private void addUrlToClassLoader(URLClassLoader classLoader, URL url) throws Exception {
+        Method addUrl = URLClassLoader.class.getDeclaredMethod("addURL", URL.class);
+        addUrl.setAccessible(true);
+        addUrl.invoke(classLoader, url);
+    }
+
+    /**
+     * Instantiates the ClientHijack class in the RuneLite ClassLoader.
+     */
+    private void instantiateHijackClient(ClassLoader classLoader) throws Exception {
+        Class<?> hijackClass = classLoader.loadClass(ClientHijack.class.getName());
+        hijackClass.getConstructor().newInstance();
+        log.info("ClientHijack class instantiated successfully");
+    }
+
+    public static void main(String[] args) {
+        log.info("Starting RuneLite Hijack");
+
+        System.setProperty("runelite.launcher.nojvm", "true");
+        System.setProperty("runelite.launcher.reflect", "true");
+
+        LauncherHijack hijack = new LauncherHijack();
+        hijack.start();
+
+        try {
+            Class<?> launcherClass = Class.forName(LAUNCHER_CLASS);
+            launcherClass.getMethod("main", String[].class).invoke(null, (Object) args);
+            log.info("RuneLite Launcher started successfully");
+        } catch (Exception e) {
+            log.error("Failed to start RuneLite launcher", e);
+            hijack.shutdown();
+            System.exit(1);
+        }
+
+        Runtime.getRuntime().addShutdownHook(new Thread(hijack::shutdown, "LauncherHijack-Shutdown"));
+    }
 }

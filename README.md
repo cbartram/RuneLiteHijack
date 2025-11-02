@@ -3,7 +3,7 @@ Random project I made to run my own custom or modified external plugins on the o
 
 # Installation
 
-- Download latest RuneLiteHijack from the releases section (or build locally using `mvn clean install`)
+- Download latest RuneLiteHijack from the releases section (or build locally using `mvn clean package`)
 - Find RuneLite install directory usually located in `C:\Users\<YOUR_USER>\AppData\Local\RuneLite`
 - Place `RuneLiteHijack.jar` from `./target/RuneLiteHijack.jar` in the same folder as `config.json` (the RuneLite install directory)
 - Open `config.json`
