@@ -56,6 +56,7 @@ public class LauncherHijack {
 
     private void hijackLauncher() {
         try {
+            // TODO In Hydra this is never found
             ClassLoader runeliteClassLoader = waitForRuneLiteClassLoader();
             log.info("RuneLite ClassLoader located: {}", runeliteClassLoader.getName());
 
@@ -89,6 +90,7 @@ public class LauncherHijack {
      */
     private boolean isRuneLiteClassLoader(ClassLoader classLoader) {
         for (Package pack : classLoader.getDefinedPackages()) {
+            log.info("Classloader package name: {}", pack.getName());
             if (pack.getName().equals(RUNELITE_PACKAGE)) {
                 return true;
             }
